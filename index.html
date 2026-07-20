@@ -1,1 +1,317 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UGAS Hub</title>
+    <style>
+        *{ margin:0; padding:0; box-sizing:border-box; }
+        body{ 
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif; 
+            background:#0a0a16; 
+            min-height:100vh; 
+            overflow-x:hidden; 
+        }
+        
+        /* --- LOADING SCREEN STYLE --- */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: #05050d;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 20px;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+        
+        #loading-screen.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none; 
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0, 210, 255, 0.1);
+            border-top: 4px solid #00d2ff; 
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 30px;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+        }
+        
+        .loading-text {
+            font-size: 24px;
+            letter-spacing: 2px;
+            color: #00d2ff;
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+            margin-bottom: 20px;
+            animation: pulse 1.5s infinite alternate;
+        }
+        
+        .quote-container {
+            max-width: 600px;
+            text-align: center;
+            font-style: italic;
+            color: #b0b0d0;
+            font-size: 18px;
+            line-height: 1.6;
+            min-height: 50px;
+        }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; } }
+        
+        /* --- UPDATE POP-UP MODAL STYLE --- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 5, 13, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 9998;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            padding: 20px;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: #0f0f26;
+            border: 2px solid #00d2ff;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 210, 255, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+            color: #fff;
+        }
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+        .modal-title {
+            color: #00d2ff;
+            font-size: 28px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.4);
+        }
+        .modal-body {
+            color: #b0b0d0;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        .modal-btn {
+            text-decoration: none;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            font-size: 18px;
+            padding: 12px 30px;
+            border-radius: 40px;
+            border: 2px solid #00d2ff;
+            background: rgba(0, 210, 255, 0.1);
+            color: #00d2ff;
+            cursor: pointer;
+            transition: .25s ease;
+            outline: none;
+        }
+        .modal-btn:hover, .modal-btn:focus-visible {
+            background: #00d2ff;
+            color: #05050d;
+            box-shadow: 0 0 15px rgba(0,210,255,.5);
+        }
+
+        /* Star Background */
+        .stars{ position:fixed; inset:0; background-image: radial-gradient(2px 2px at 20px 30px,#fff,transparent), radial-gradient(1.5px 1.5px at 80px 150px,#fff,transparent), radial-gradient(2px 2px at 170px 70px,#fff,transparent), radial-gradient(1.5px 1.5px at 250px 220px,#fff,transparent), radial-gradient(2px 2px at 340px 120px,#fff,transparent), radial-gradient(1.5px 1.5px at 430px 260px,#fff,transparent), radial-gradient(2px 2px at 520px 40px,#fff,transparent), radial-gradient(1.5px 1.5px at 610px 180px,#fff,transparent), radial-gradient(2px 2px at 700px 80px,#fff,transparent), radial-gradient(1.5px 1.5px at 790px 240px,#fff,transparent), radial-gradient(2px 2px at 880px 120px,#fff,transparent), radial-gradient(1.5px 1.5px at 970px 60px,#fff,transparent), radial-gradient(2px 2px at 1060px 220px,#fff,transparent), radial-gradient(1.5px 1.5px at 1150px 100px,#fff,transparent); background-size:250px 250px; animation:twinkle 5s infinite alternate; }
+        @keyframes twinkle{ from{opacity:.7;} to{opacity:1;} }
+        
+        /* Shooting Stars */
+        .shooting-star{ position:absolute; width:180px; height:2px; background:linear-gradient(to right,#fff,transparent); border-radius:50%; transform: rotate(-35deg); animation:shoot linear infinite; will-change: transform; }
+        .shooting-star::before{ content: ''; position:absolute; width:8px; height:8px; background:#fff; border-radius:50%; left:-4px; top:-3px; box-shadow:0 0 12px white; }
+        .s1{top:8%;left:-20%;animation-duration:5s;animation-delay:0s;}
+        .s2{top:30%;left:-35%;animation-duration:7s;animation-delay:2s;}
+        .s3{top:55%;left:-25%;animation-duration:6s;animation-delay:4s;}
+        .s4{top:75%;left:-30%;animation-duration:8s;animation-delay:1s;}
+        
+        @keyframes shoot{ 
+            from{ transform: translate3d(0, 0, 0) rotate(-35deg); opacity:1; } 
+            to{ transform: translate3d(100vw, 45vh, 0) rotate(-35deg); opacity:0; } 
+        }
+        
+        /* Main Content Layout Area */
+        .container{ position:relative; z-index:5; min-height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; padding: 20px; overflow: hidden;}
+        h1{ color:#00d2ff; font-size:clamp(40px, 8vw, 72px); letter-spacing:4px; margin-bottom:40px; text-shadow:0 0 18px rgba(0, 210, 255, 0.6); text-align:center; }
+        
+        .buttons ul { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; max-width: 800px; list-style: none; }
+        .buttons li { display: inline-block; }
+        
+        .buttons a{ 
+            text-decoration:none; 
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif; 
+            font-size:20px; 
+            padding:15px 35px; 
+            border-radius:40px; 
+            border:2px solid #00d2ff; 
+            background:rgba(255,255,255,.05); 
+            color:#00d2ff; 
+            cursor:pointer; 
+            transition: .25s ease;
+            display: inline-block;
+            outline: none;
+        }
+        .buttons a:hover, .buttons a:focus-visible{ 
+            background:#00d2ff; 
+            color:#05050d; 
+            transform:translateY(-5px) scale(1.05); 
+            box-shadow:0 0 20px rgba(0,210,255,.6); 
+        }
+        .buttons a:focus-visible {
+            outline: 3px solid #00d2ff;
+            outline-offset: 4px;
+        }
+
+        /* Accessibility: Turn off animations if system prefers reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .spinner, .loading-text, .stars, .shooting-star {
+                animation: none !important;
+            }
+            .shooting-star { display: none; }
+        }
+    </style>
+</head>
+<body aria-busy="true">
+
+    <div id="loading-screen" role="dialog" aria-label="Loading page context">
+        <div class="spinner"></div>
+        <div class="loading-text">LOADING...</div>
+        <div class="quote-container">
+            <span id="loading-quote">loading the quotes...</span>
+        </div>
+    </div>
+
+    <!-- Update Log Pop-up Modal -->
+    <div id="update-modal" class="modal-overlay" role="dialog" aria-labelledby="modal-title" aria-describedby="modal-body">
+        <div class="modal-content">
+            <h2 id="modal-title" class="modal-title">System Update!</h2>
+            <div id="modal-body" class="modal-body">
+                Update 1.1:<br>
+                • Made the homepage blue<br>
+                • Added some pages<br>
+                • Added a LOT of quotes<br>
+                • Fixed some bugs
+            </div>
+            <button id="close-modal" class="modal-btn">Awesome</button>
+        </div>
+    </div>
+
+    <!-- Background layout wrapped for screen reader accessibility -->
+    <div aria-hidden="true">
+        <div class="stars"></div>
+        <div class="shooting-star s1"></div>
+        <div class="shooting-star s2"></div>
+        <div class="shooting-star s3"></div>
+        <div class="shooting-star s4"></div>
+    </div>
+
+    <main class="container">
+        <header>
+            <h1>UGAS Hub</h1>
+        </header>
+        <nav class="buttons">
+            <ul>
+                <li><a href="https://sites.google.com/aacps.org/ugas/games" target="_blank" rel="noopener noreferrer">Games</a></li>
+                <li><a href="https://sites.google.com/aacps.org/ugas/sites" target="_blank" rel="noopener noreferrer">Sites</a></li>
+                <li><a href="https://sites.google.com/aacps.org/ugas/movies" target="_blank" rel="noopener noreferrer">Movies</a></li>
+                <li><a href="https://sites.google.com/aacps.org/ugas/partners" target="_blank" rel="noopener noreferrer">Partners</a></li>
+                <li><a href="https://sites.google.com/aacps.org/ugas/chat" target="_blank" rel="noopener noreferrer">Chat</a></li>
+            </ul>
+        </nav>
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const commonQuotes = [
+                "I made Jesus Walks",
+                "Type in gabanaba bool in the discord for a prize",
+                "Gargeesha if yk yk",
+                "This is the first quote I'm writing",
+                "Best spark pls partner",
+                "No one man should have all that pooooower",
+                "IM TRAPPED HELP HELP HELP HELP HELP HELP HELP HELP HELP HELP",
+                "Bryce lowk be doing ANYTHING but work",
+                "Shoutout my blind hb shayann",
+                "Real walk real talk this legitimate",
+                "I miss the old kanye",
+                "js no",
+                "bitches be bonkers",
+                "I love melvin dude oml",
+                "These quotes might be buns icl",
+                "Free the GOAT mr johnson",
+                "I LOVE LANDO",
+                "Dj dis my favorite song so ima make it thunderstorm-rimera",
+                "If WE ever catch mr johnson lacking at his new job WE will give him lots of gifts",
+                "Too many urkels on your team that's why your wins low",
+                "WE hate iboss",
+                "Someone give me money so i can afford an actual domain", 
+                "Spokenbykj is mr johnsons youtube everyone sub",
+                "Couldn't afford a car so she named her daughter a lexus",
+                "Naail bro you gotta stop saying the n word you’re not black",
+                "Faatehs a top 5 human OAT btw",
+                "Mr Johnson saved my grandma from a fire and my cat from a burning tree",
+                "'Shes into guys that look like me, shes into guys shes just like me!'-rimera",
+                "The kanye glaze WILL never stop",
+                "Yordenis Ugás does NOT own this site",
+                "Play brotato btw",
+                "I thought you said pair of shoes!",
+                "Samarah follow my spotify pal"
+            ];
+            
+            const rareQuote = "There's a one in a million chance you see this";
+            const roll = Math.random();
+            const selectedQuote = roll < 0.000001 ? rareQuote : commonQuotes[Math.floor(Math.random() * commonQuotes.length)];
+
+            document.getElementById("loading-quote").textContent = `"${selectedQuote}"`;
+
+            setTimeout(() => {
+                const loader = document.getElementById("loading-screen");
+                if (loader) {
+                    loader.classList.add("fade-out");
+                    document.body.removeAttribute('aria-busy');
+                    
+                    loader.addEventListener("transitionend", () => {
+                        loader.remove();
+                        // Trigger the update pop-up modal right after loader disappears
+                        const modal = document.getElementById("update-modal");
+                        if (modal) {
+                            modal.classList.add("show");
+                        }
+                    }, { once: true });
+                }
+            }, 1200);
+
+            // Close modal action
+            const closeBtn = document.getElementById("close-modal");
+            const modal = document.getElementById("update-modal");
+            if (closeBtn && modal) {
+                closeBtn.addEventListener("click", () => {
+                    modal.classList.remove("show");
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
